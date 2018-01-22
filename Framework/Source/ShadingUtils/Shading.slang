@@ -416,13 +416,42 @@ void _fn evalMaterial(
     passResult.specularIllumination = 0;
     passResult.roughness = 0;
     passResult.effectiveRoughness = 0;
-    [unroll]
-    for(uint iLayer = 0 ; iLayer < MatMaxLayers ; iLayer++)
+    //AREA_LIGHT_EXTENSION
+    if (lAttr.lightType == LightQuad)
     {
-        if(shAttr.preparedMat.desc.layers[iLayer].type == MatNone) break;
-        evalMaterialLayer(iLayer, shAttr, lAttr, passResult);
+        //get roughness from material
+        MaterialLayerDesc desc = shAttr.preparedMat.desc.layers[1];
+        MaterialLayerValues data = shAttr.preparedMat.values.layers[1];
+        float2 roughness;
+        if(desc.hasTexture & ROUGHNESS_CHANNEL_BIT)
+        {
+            roughness = float2(data.albedo.w, data.albedo.w);
+        }
+        else
+        {
+            roughness = data.roughness.rg;
+        }
+        float3 albedo = shAttr.preparedMat.values.layers[0].albedo.rgb;
+        float3 diffLighting, specLighting;
+        Points4 pts;
+        for (int i = 0; i < 4; i++) pts.points[i] = lAttr.points[i];
+        evalAreaLight(shAttr.N, shAttr.E, shAttr.P, roughness.r, 
+                   lAttr.lightIntensity, 
+                   pts, false,
+                   diffLighting, specLighting);
+        passResult.value = (diffLighting+specLighting)*albedo;
+        passResult.diffuseAlbedo = albedo;
+        passResult.specularAlbedo = albedo;
     }
-
+    else
+    {
+        [unroll]
+        for(uint iLayer = 0 ; iLayer < MatMaxLayers ; iLayer++)
+        {
+            if(shAttr.preparedMat.desc.layers[iLayer].type == MatNone) break;
+            evalMaterialLayer(iLayer, shAttr, lAttr, passResult);
+        }
+    }
     /* Accumulate the results of the pass */
     result.finalValue += passResult.value;
     result.effectiveRoughness += passResult.effectiveRoughness / max(1e-3f, luminance(passResult.value));

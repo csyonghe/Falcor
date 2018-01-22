@@ -35,7 +35,7 @@
 #include <math.h>
 #include "Data/VertexAttrib.h"
 #include "Graphics/Model/Model.h"
-
+#include "TextureHelper.h"
 
 namespace Falcor
 {
@@ -579,4 +579,87 @@ namespace Falcor
         vec3 stillUp = vec3(0, 1, 0);
         mpMeshInstance->move(position, stillTarget, stillUp);
     }
+
+    //AREA_LIGHT_EXTENSION:
+
+    QuadLight::QuadLight() : mDistance(-1.0f)
+    {
+        mData.type = LightQuad;
+    }
+
+    QuadLight::SharedPtr QuadLight::create()
+    {
+        QuadLight* pLight = new QuadLight();
+        return SharedPtr(pLight);
+    }
+
+    QuadLight::~QuadLight() = default;
+
+    void QuadLight::worldParamsChanged()
+    {
+        mData.worldDir = normalize(mData.worldDir);
+        upDir = normalize(upDir);
+        float3 right = normalize(cross(upDir, mData.worldDir));
+        mData.points[0] = float4(mData.worldPos - right * width * 0.5f - upDir * height * 0.5f, 1.0f);
+        mData.points[1] = float4(mData.worldPos + right * width * 0.5f - upDir * height * 0.5f, 1.0f);
+        mData.points[2] = float4(mData.worldPos + right * width * 0.5f + upDir * height * 0.5f, 1.0f);
+        mData.points[3] = float4(mData.worldPos - right * width * 0.5f + upDir * height * 0.5f, 1.0f);
+    }
+
+    void QuadLight::renderUI(Gui* pGui, const char* group)
+    {
+        if (!group || pGui->beginGroup(group))
+        {
+            if (pGui->addFloatVar("Width", width))
+            {
+                worldParamsChanged();
+            }
+            if (pGui->addFloatVar("Height", height))
+            {
+                worldParamsChanged();
+            }
+            if (pGui->addFloat3Var("Direction", mData.worldDir))
+            {
+                worldParamsChanged();
+            }
+            if (pGui->addFloat3Var("Up", upDir))
+            {
+                worldParamsChanged();
+            }
+            if (pGui->addFloat3Var("Position", mData.worldPos, -10000.0, 10000.0f))
+            {
+                worldParamsChanged();
+            }
+            Light::renderUI(pGui);
+            pGui->addFloat4Var("points[0]", mData.points[0], -10000.0f, 1000.0f);
+            pGui->addFloat4Var("points[1]", mData.points[1], -10000.0f, 1000.0f);
+            pGui->addFloat4Var("points[2]", mData.points[2], -10000.0f, 1000.0f);
+            pGui->addFloat4Var("points[3]", mData.points[3], -10000.0f, 1000.0f);
+            if (group)
+            {
+                pGui->endGroup();
+            }
+        }
+    }
+
+    void QuadLight::prepareGPUData()
+    {
+    }
+
+    void QuadLight::unloadGPUData()
+    {
+    }
+
+    float QuadLight::getPower()
+    {
+        return luminance(mData.intensity) * width*height;
+    }
+
+    void QuadLight::move(const glm::vec3& position, const glm::vec3& target, const glm::vec3& up)
+    {
+        mData.worldPos = position;
+        mData.worldDir = normalize(target - position);
+        worldParamsChanged();
+    }
+
 }

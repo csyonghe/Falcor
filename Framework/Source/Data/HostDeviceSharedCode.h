@@ -225,7 +225,8 @@ struct LightData
 	float3            bitangent          DEFAULTS(float3());          ///< BiTangent vector of the geometry mesh
 	float           pad;
     float4x4            transMat           DEFAULTS(float4x4());          ///< Transformation matrix of the model instance for area lights
-
+    //AREA_LIGHT_EXTENSION
+    float4          points[4];
     // For area light
 // 	BufPtr          indexPtr;                                     ///< Buffer id for indices
 // 	BufPtr          vertexPtr;                                    ///< Buffer id for vertices

@@ -37,7 +37,7 @@
 #include "API/Device.h"
 #include "glm/matrix.hpp"
 #include "Graphics/Material/MaterialSystem.h"
-
+#include "Graphics/TextureHelper.h"
 namespace Falcor
 {
     size_t SceneRenderer::sBonesOffset = ConstantBuffer::kInvalidOffset;
@@ -66,6 +66,13 @@ namespace Falcor
     SceneRenderer::SceneRenderer(const Scene::SharedPtr& pScene) : mpScene(pScene)
     {
         setCameraControllerType(CameraControllerType::SixDof);
+        //AREA_LIGHT_EXTENSION
+        texLtcMag = createTextureFromFile("Framework/Textures/ltc_amp.dds", false, false);
+        texLtcMat = createTextureFromFile("Framework/Textures/ltc_mat.dds", false, false);
+        Sampler::Desc desc;
+        desc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
+        desc.setLodParams(0, 0, 0.0f);
+        linearSampler = Sampler::create(desc);
     }
 
     void SceneRenderer::updateVariableOffsets(const ProgramReflection* pReflector)
@@ -140,6 +147,11 @@ namespace Falcor
             {
                 pCB->setVariable(sAmbientLightOffset, mpScene->getAmbientIntensity());
             }
+            //AREA_LIGHT_EXTENSION
+            auto block = currentData.pVars->getDefaultBlock();
+            block->setTexture("g_ltc_mat", texLtcMat);
+            block->setTexture("g_ltc_mag", texLtcMag);
+            block->setSampler("g_light_sampler", linearSampler);
         }
     }
 

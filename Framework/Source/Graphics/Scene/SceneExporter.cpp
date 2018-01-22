@@ -274,6 +274,17 @@ namespace Falcor
         addVector(jsonLight, allocator, SceneKeys::kLightDirection, pLight->getWorldDirection());
     }
 
+    void createQuadLightValue(const QuadLight* pLight, rapidjson::Document::AllocatorType& allocator, rapidjson::Value& jsonLight)
+    {
+        addString(jsonLight, allocator, SceneKeys::kName, pLight->getName());
+        addString(jsonLight, allocator, SceneKeys::kType, SceneKeys::kQuadLight);
+        addVector(jsonLight, allocator, SceneKeys::kLightIntensity, pLight->getIntensity());
+        addVector(jsonLight, allocator, SceneKeys::kLightPos, pLight->getWorldPosition());
+        addVector(jsonLight, allocator, SceneKeys::kLightDirection, pLight->getWorldDirection());
+        addVector(jsonLight, allocator, SceneKeys::kLightUp, pLight->upDir);
+        addVector(jsonLight, allocator, SceneKeys::kLightSize, float2(pLight->width, pLight->height));
+    }
+
     void createLightValue(const Scene::SharedPtr& pScene, uint32_t lightID, rapidjson::Document::AllocatorType& allocator, rapidjson::Value& jsonLight)
     {
         jsonLight.SetObject();
@@ -286,6 +297,9 @@ namespace Falcor
             break;
         case LightDirectional:
             createDirectionalLightValue((DirectionalLight*)pLight.get(), allocator, jsonLight);
+            break;
+        case LightQuad:
+            createQuadLightValue((QuadLight*)pLight.get(), allocator, jsonLight);
             break;
         default:
             should_not_get_here();
@@ -306,6 +320,7 @@ namespace Falcor
         for (uint32_t i = 0; i < mpScene->getLightCount(); i++)
         {
             if (mpScene->getLights()[i]->getType() != LightPoint &&
+                mpScene->getLights()[i]->getType() != LightQuad &&
                 mpScene->getLights()[i]->getType() != LightDirectional)
             {
                 continue;

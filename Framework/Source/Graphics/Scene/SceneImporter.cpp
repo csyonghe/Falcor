@@ -822,6 +822,98 @@ namespace Falcor
         return true;
     }
 
+    bool SceneImporter::createQuadLight(const rapidjson::Value & jsonLight)
+    {
+        auto pQuadLight = QuadLight::create();
+
+        for (auto it = jsonLight.MemberBegin(); it != jsonLight.MemberEnd(); it++)
+        {
+            std::string key(it->name.GetString());
+            const auto& value = it->value;
+            if (key == SceneKeys::kName)
+            {
+                if (value.IsString() == false)
+                {
+                    return error("Quad light name should be a string");
+                }
+                std::string name = value.GetString();
+                if (name.find(' ') != std::string::npos)
+                {
+                    return error("Quad light name can't have spaces");
+                }
+                pQuadLight->setName(name);
+            }
+            else if (key == SceneKeys::kType)
+            {
+                // Don't care
+            }
+            else if (key == SceneKeys::kLightIntensity)
+            {
+                glm::vec3 intensity;
+                if (getFloatVec<3>(value, "Quad light intensity", &intensity[0]) == false)
+                {
+                    return false;
+                }
+                pQuadLight->setIntensity(intensity);
+            }
+            else if (key == SceneKeys::kLightPos)
+            {
+                glm::vec3 position;
+                if (getFloatVec<3>(value, "Quad light position", &position[0]) == false)
+                {
+                    return false;
+                }
+                pQuadLight->setWorldPosition(position);
+            }
+            else if (key == SceneKeys::kLightDirection)
+            {
+                glm::vec3 dir;
+                if (getFloatVec<3>(value, "Quad light direction", &dir[0]) == false)
+                {
+                    return false;
+                }
+                pQuadLight->setWorldDirection(dir);
+            }
+            else if (key == SceneKeys::kLightUp)
+            {
+                glm::vec3 dir;
+                if (getFloatVec<3>(value, "Quad light direction", &dir[0]) == false)
+                {
+                    return false;
+                }
+                pQuadLight->upDir = dir;
+                pQuadLight->worldParamsChanged();
+            }
+            else if (key == SceneKeys::kLightSize)
+            {
+                glm::vec2 dir;
+                if (getFloatVec<2>(value, "Quad light size", &dir[0]) == false)
+                {
+                    return false;
+                }
+                pQuadLight->width = dir.x;
+                pQuadLight->height = dir.y;
+                pQuadLight->worldParamsChanged();
+            }
+            else
+            {
+                return error("Invalid key found in point light object. Key == " + key + ".");
+            }
+        }
+
+        if (isNameDuplicate(pQuadLight->getName(), mLightMap, "lights"))
+        {
+            return false;
+        }
+        else
+        {
+            mLightMap[pQuadLight->getName()] = pQuadLight;
+            mScene.addLight(pQuadLight);
+        }
+
+        return true;
+    }
+
     bool SceneImporter::parseLights(const rapidjson::Value& jsonVal)
     {
         if(jsonVal.IsArray() == false)
@@ -853,6 +945,10 @@ namespace Falcor
             else if(lightType == SceneKeys::kPointLight)
             {
                 b = createPointLight(light);
+            }
+            else if (lightType == SceneKeys::kQuadLight)
+            {
+                b = createQuadLight(light);
             }
             else
             {

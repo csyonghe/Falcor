@@ -53,7 +53,8 @@ struct LightAttribs
     float3    P;              ///< Sampled point on the light source
     float3    N;              ///< Normal of the sampled point on the light source
     float   pdf;            ///< Probability density function of sampling the light source
-
+    //AREA_LIGHT_EXTENSION
+    int       lightType;
     float3    points[4];
 };
 
@@ -149,6 +150,14 @@ inline void _fn prepareLightAttribs(LightData Light, ShadingAttribs ShAttr, floa
         Atten /= max(1e-3f, dot(PosToLight, PosToLight));
 
         LightAttr.lightIntensity *= Atten;
+    }
+    //AREA_LIGHT_EXTENSION
+    LightAttr.lightType = Light.type;
+    if (Light.type == LightQuad)
+    {
+        for (int i = 0; i < 4; i++)
+            LightAttr.points[i] = Light.points[i].xyz;
+        LightAttr.lightIntensity = Light.intensity;
     }
     // DISABLED_FOR_D3D12
 #if 0
@@ -251,5 +260,210 @@ void _fn stratifiedSampleRectangularAreaLight(float3 shadingHitPos, LightData lD
     else
         lAttr.lightIntensity = 0;
 }
+
+
+//AREA_LIGHT_EXTENSION
+#define pi 3.14159265
+#define LUT_SIZE 32.0
+#define LUT_SCALE (LUT_SIZE - 1.0)/LUT_SIZE
+#define LUT_BIAS 0.5/LUT_SIZE
+Texture2D g_ltc_mat;
+Texture2D g_ltc_mag;
+SamplerState g_light_texSampler;
+struct Points4 { float3 points[4]; };
+void evalAreaLight(float3 N, float3 V, float3 P, float roughness, float3 intensity, 
+                   Points4 points, bool twoSided,
+                   out float3 diffLighting, out float3 specLighting)
+{
+    float theta = acos(dot(N, V));
+    float2 uv = float2(roughness, theta/(0.5*pi));
+    uv = uv*LUT_SCALE + LUT_BIAS;
+        
+    float4 t = g_ltc_mat.SampleBias(g_light_texSampler, uv, 0.0);
+    float3x3 Minv = float3x3(
+        float3(  1,   0, t.y),
+        float3(  0, t.z,   0),
+        float3(t.w,   0, t.x)
+    );
+    specLighting = intensity*LTC_Evaluate(N, V, P, Minv, points, twoSided);
+    specLighting *= g_ltc_mag.SampleBias(g_light_texSampler, uv, 0.0).w;
+    specLighting = float3(0.0f);
+        
+    diffLighting = intensity*LTC_Evaluate(N, V, P, float3x3(1,0,0,0,1,0,0,0,1), points, twoSided); 
+}
+struct Points5 {float3 points[5];};
+float3 LTC_Evaluate(float3 N, float3 V, float3 P, float3x3 Minv, Points4 p, bool twoSided)
+{
+        
+    // construct orthonormal basis around N
+    float3 T1, T2;
+    T1 = normalize(V - N*dot(V, N));
+    T2 = cross(N, T1);
+
+    // rotate area light in (T1, T2, N) basis
+    Minv = mul(transpose(float3x3(T1, T2, N)), Minv);
+
+    // polygon (allocate 5 vertices for clipping)
+    Points5 L;
+    L.points[0] = mul(p.points[0] - P, Minv);
+    L.points[1] = mul(p.points[1] - P, Minv);
+    L.points[2] = mul(p.points[2] - P, Minv);
+    L.points[3] = mul(p.points[3] - P, Minv);
+    L.points[4] = float3(0,0,0);
+
+    int n;
+    ClipQuadToHorizon(L, n);
+    
+    if (n == 0)
+        return float3(0, 0, 0);
+
+    // project onto sphere
+    L.points[0] = normalize(L.points[0]);
+    L.points[1] = normalize(L.points[1]);
+    L.points[2] = normalize(L.points[2]);
+    L.points[3] = normalize(L.points[3]);
+    L.points[4] = normalize(L.points[4]);
+
+    // integrate
+    float sum = 0.0;
+
+    sum += IntegrateEdge(L.points[0], L.points[1]);
+    sum += IntegrateEdge(L.points[1], L.points[2]);
+    sum += IntegrateEdge(L.points[2], L.points[3]);
+    if (n >= 4)
+        sum += IntegrateEdge(L.points[3], L.points[4]);
+    if (n == 5)
+        sum += IntegrateEdge(L.points[4], L.points[0]);
+
+    sum = twoSided ? abs(sum) : max(0.0, sum);
+
+    float3 Lo_i = float3(sum, sum, sum);
+
+    return Lo_i;
+}
+
+float IntegrateEdge(float3 v1, float3 v2)
+{
+    float cosTheta = dot(v1, v2);
+    float theta = acos(cosTheta);    
+    float res = cross(v1, v2).z * ((theta > 0.001) ? theta/sin(theta) : 1.0);
+
+    return res;
+}
+
+void ClipQuadToHorizon(inout Points5 L, out int n)
+{
+    // detect clipping config
+    int config = 0;
+    if (L.points[0].z > 0.0) config += 1;
+    if (L.points[1].z > 0.0) config += 2;
+    if (L.points[2].z > 0.0) config += 4;
+    if (L.points[3].z > 0.0) config += 8;
+
+    // clip
+    n = 0;
+
+    if (config == 0)
+    {
+        // clip all
+    }
+    else if (config == 1) // V1 clip V2 V3 V4
+    {
+        n = 3;
+        L.points[1] = -L.points[1].z * L.points[0] + L.points[0].z * L.points[1];
+        L.points[2] = -L.points[3].z * L.points[0] + L.points[0].z * L.points[3];
+    }
+    else if (config == 2) // V2 clip V1 V3 V4
+    {
+        n = 3;
+        L.points[0] = -L.points[0].z * L.points[1] + L.points[1].z * L.points[0];
+        L.points[2] = -L.points[2].z * L.points[1] + L.points[1].z * L.points[2];
+    }
+    else if (config == 3) // V1 V2 clip V3 V4
+    {
+        n = 4;
+        L.points[2] = -L.points[2].z * L.points[1] + L.points[1].z * L.points[2];
+        L.points[3] = -L.points[3].z * L.points[0] + L.points[0].z * L.points[3];
+    }
+    else if (config == 4) // V3 clip V1 V2 V4
+    {
+        n = 3;
+        L.points[0] = -L.points[3].z * L.points[2] + L.points[2].z * L.points[3];
+        L.points[1] = -L.points[1].z * L.points[2] + L.points[2].z * L.points[1];
+    }
+    else if (config == 5) // V1 V3 clip V2 V4) impossible
+    {
+        n = 0;
+    }
+    else if (config == 6) // V2 V3 clip V1 V4
+    {
+        n = 4;
+        L.points[0] = -L.points[0].z * L.points[1] + L.points[1].z * L.points[0];
+        L.points[3] = -L.points[3].z * L.points[2] + L.points[2].z * L.points[3];
+    }
+    else if (config == 7) // V1 V2 V3 clip V4
+    {
+        n = 5;
+        L.points[4] = -L.points[3].z * L.points[0] + L.points[0].z * L.points[3];
+        L.points[3] = -L.points[3].z * L.points[2] + L.points[2].z * L.points[3];
+    }
+    else if (config == 8) // V4 clip V1 V2 V3
+    {
+        n = 3;
+        L.points[0] = -L.points[0].z * L.points[3] + L.points[3].z * L.points[0];
+        L.points[1] = -L.points[2].z * L.points[3] + L.points[3].z * L.points[2];
+        L.points[2] =  L.points[3];
+    }
+    else if (config == 9) // V1 V4 clip V2 V3
+    {
+        n = 4;
+        L.points[1] = -L.points[1].z * L.points[0] + L.points[0].z * L.points[1];
+        L.points[2] = -L.points[2].z * L.points[3] + L.points[3].z * L.points[2];
+    }
+    else if (config == 10) // V2 V4 clip V1 V3) impossible
+    {
+        n = 0;
+    }
+    else if (config == 11) // V1 V2 V4 clip V3
+    {
+        n = 5;
+        L.points[4] = L.points[3];
+        L.points[3] = -L.points[2].z * L.points[3] + L.points[3].z * L.points[2];
+        L.points[2] = -L.points[2].z * L.points[1] + L.points[1].z * L.points[2];
+    }
+    else if (config == 12) // V3 V4 clip V1 V2
+    {
+        n = 4;
+        L.points[1] = -L.points[1].z * L.points[2] + L.points[2].z * L.points[1];
+        L.points[0] = -L.points[0].z * L.points[3] + L.points[3].z * L.points[0];
+    }
+    else if (config == 13) // V1 V3 V4 clip V2
+    {
+        n = 5;
+        L.points[4] = L.points[3];
+        L.points[3] = L.points[2];
+        L.points[2] = -L.points[1].z * L.points[2] + L.points[2].z * L.points[1];
+        L.points[1] = -L.points[1].z * L.points[0] + L.points[0].z * L.points[1];
+    }
+    else if (config == 14) // V2 V3 V4 clip V1
+    {
+        n = 5;
+        L.points[4] = -L.points[0].z * L.points[3] + L.points[3].z * L.points[0];
+        L.points[0] = -L.points[0].z * L.points[1] + L.points[1].z * L.points[0];
+    }
+    else if (config == 15) // V1 V2 V3 V4
+    {
+        n = 4;
+    }
+    
+    if (n == 3)
+        L.points[3] = L.points[0];
+    if (n == 4)
+        L.points[4] = L.points[0];
+}
+
+
+////////////
+
 
 #endif	// _FALCOR_LIGHTS_H_

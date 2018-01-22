@@ -68,6 +68,7 @@ namespace Falcor
         bool setMaterialOverrides(const rapidjson::Value& jsonVal, const Model::SharedPtr& pModel);
         bool createModelInstances(const rapidjson::Value& jsonVal, const Model::SharedPtr& pModel);
         bool createPointLight(const rapidjson::Value& jsonLight);
+        bool createQuadLight(const rapidjson::Value& jsonLight);
         bool createDirLight(const rapidjson::Value& jsonLight);
         ObjectPath::SharedPtr createPath(const rapidjson::Value& jsonPath);
         bool createPathFrames(ObjectPath* pPath, const rapidjson::Value& jsonFramesArray);

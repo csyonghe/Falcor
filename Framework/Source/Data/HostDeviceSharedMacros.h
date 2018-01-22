@@ -85,6 +85,8 @@
 #define LightPoint           0    ///< Point light source, can be a spot light if its opening angle is < 2pi
 #define LightDirectional     1    ///< Directional light source
 #define LightArea            2    ///< Area light source, potentially with arbitrary geometry
+//AREA_LIGHT_EXTENSION
+#define LightQuad            3
 //#define LightVolume        3    ///< Volumetric light source
 
 #define MAX_LIGHT_SOURCES 16

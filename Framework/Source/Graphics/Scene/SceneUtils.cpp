@@ -48,6 +48,7 @@ namespace Falcor
         }
     }
 
+    //AREA_LIGHT_INTEGRATION
     void setSceneLightsIntoConstantBuffer(const Scene* pScene, ConstantBuffer* pBuffer)
     {
         // Set all the lights

@@ -262,6 +262,71 @@ namespace Falcor
     private:
     };
 
+    //AREA_LIGHT_EXTENSION
+    /** Quad light source.
+    */
+    class QuadLight : public Light, public std::enable_shared_from_this<QuadLight>
+    {
+    public:
+        using SharedPtr = std::shared_ptr<QuadLight>;
+        using SharedConstPtr = std::shared_ptr<const QuadLight>;
+
+        static SharedPtr create();
+
+        float width = 1.0f, height = 1.0f;
+        float3 upDir = float3(0.0f, 1.0f, 0.0f);
+        void worldParamsChanged();
+        QuadLight();
+        ~QuadLight();
+
+        /** Render UI elements for this light.
+        \param[in] pGui The GUI to create the elements with
+        \param[in] group Optional. If specified, creates a UI group to display elements within
+        */
+        void renderUI(Gui* pGui, const char* group = nullptr) override;
+
+        /** Prepare GPU data
+        */
+        void prepareGPUData() override;
+
+        /** Unload GPU data
+        */
+        void unloadGPUData() override;
+
+        /** Set the light intensity.
+        \param[in] intensity Vec3 corresponding to RGB intensity
+        */
+        void setIntensity(const glm::vec3& intensity) { mData.intensity = intensity; }
+
+        void setWorldDirection(const glm::vec3& dir) { mData.worldDir = dir;  worldParamsChanged(); }
+
+        void setWorldPosition(const glm::vec3& pos) { mData.worldPos = pos;  worldParamsChanged(); }
+
+        /** Get the light's world-space direction.
+        */
+        const glm::vec3& getWorldDirection() const { return mData.worldDir; }
+
+        const glm::vec3& getWorldPosition() const { return mData.worldPos; }
+
+        /** Get the light intensity.
+        */
+        const glm::vec3& getIntensity() const { return mData.intensity; }
+
+        /** Get total light power (needed for light picking)
+        */
+        float getPower() override;
+
+        /** IMovableObject interface
+        */
+        void move(const glm::vec3& position, const glm::vec3& target, const glm::vec3& up) override;
+
+    private:
+
+        float mDistance = 1e3f; ///< Scene bounding radius is required to move the light position sufficiently far away
+        vec3 mCenter;
+
+    };
+
     /**
         Area light source
 
