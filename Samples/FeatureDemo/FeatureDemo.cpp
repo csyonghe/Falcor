@@ -592,7 +592,7 @@ int main(int argc, char** argv)
 {
     FeatureDemo sample;
     SampleConfig config;
-    config.windowDesc.title = "Falcor Feature Demo";
+    config.windowDesc.title = "Falcor Feature Demo (AreaLight)";
     config.windowDesc.resizableWindow = false;
 #ifdef _WIN32
     sample.run(config);

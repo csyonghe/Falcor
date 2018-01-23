@@ -155,7 +155,7 @@ inline void _fn prepareLightAttribs(LightData Light, ShadingAttribs ShAttr, floa
     LightAttr.lightType = Light.type;
     if (Light.type == LightQuad)
     {
-        for (int i = 0; i < 4; i++)
+        $for (i in Range(4))
             LightAttr.points[i] = Light.points[i].xyz;
         LightAttr.lightIntensity = Light.intensity;
     }
@@ -263,6 +263,15 @@ void _fn stratifiedSampleRectangularAreaLight(float3 shadingHitPos, LightData lD
 
 
 //AREA_LIGHT_EXTENSION
+struct Points4
+{
+    float3 points[4]; 
+};
+struct Points5
+{
+    float3 points[5];
+};
+
 #define pi 3.14159265
 #define LUT_SIZE 32.0
 #define LUT_SCALE (LUT_SIZE - 1.0)/LUT_SIZE
@@ -270,10 +279,14 @@ void _fn stratifiedSampleRectangularAreaLight(float3 shadingHitPos, LightData lD
 Texture2D g_ltc_mat;
 Texture2D g_ltc_mag;
 SamplerState g_light_texSampler;
-struct Points4 { float3 points[4]; };
-void evalAreaLight(float3 N, float3 V, float3 P, float roughness, float3 intensity, 
-                   Points4 points, bool twoSided,
-                   out float3 diffLighting, out float3 specLighting)
+
+float3 evalAreaLight_diffuse(float3 N, float3 V, float3 P, float3 intensity, Points4 points, bool twoSided)
+{
+    float3 diffLighting = intensity*LTC_Evaluate(N, V, P, float3x3(1,0,0,0,1,0,0,0,1), points, twoSided); 
+    return diffLighting;
+}
+
+float3 evalAreaLight_specular(float3 N, float3 V, float3 P, float roughness, float3 intensity, Points4 points, bool twoSided)
 {
     float theta = acos(dot(N, V));
     float2 uv = float2(roughness, theta/(0.5*pi));
@@ -285,16 +298,14 @@ void evalAreaLight(float3 N, float3 V, float3 P, float roughness, float3 intensi
         float3(  0, t.z,   0),
         float3(t.w,   0, t.x)
     );
-    specLighting = intensity*LTC_Evaluate(N, V, P, Minv, points, twoSided);
+    float3 specLighting = intensity*LTC_Evaluate(N, V, P, Minv, points, twoSided);
     specLighting *= g_ltc_mag.SampleBias(g_light_texSampler, uv, 0.0).w;
     specLighting = float3(0.0f);
-        
-    diffLighting = intensity*LTC_Evaluate(N, V, P, float3x3(1,0,0,0,1,0,0,0,1), points, twoSided); 
+    return specLighting;
 }
-struct Points5 {float3 points[5];};
+
 float3 LTC_Evaluate(float3 N, float3 V, float3 P, float3x3 Minv, Points4 p, bool twoSided)
 {
-        
     // construct orthonormal basis around N
     float3 T1, T2;
     T1 = normalize(V - N*dot(V, N));

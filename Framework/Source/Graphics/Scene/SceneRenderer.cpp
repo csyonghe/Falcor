@@ -129,13 +129,15 @@ namespace Falcor
             {
                 currentData.pCamera->setIntoConstantBuffer(pCB, sCameraDataOffset);
             }
-
+            bool hasAreaLight = false;
             // Set lights
             if (sLightArrayOffset != ConstantBuffer::kInvalidOffset)
             {
                 assert(mpScene->getLightCount() <= MAX_LIGHT_SOURCES);  // Max array size in the shader
                 for (uint_t i = 0; i < mpScene->getLightCount(); i++)
                 {
+                    if (mpScene->getLight(i)->getType() == LightQuad)
+                        hasAreaLight = true;
                     mpScene->getLight(i)->setIntoConstantBuffer(pCB, i * Light::getShaderStructSize() + sLightArrayOffset);
                 }
             }
@@ -148,10 +150,13 @@ namespace Falcor
                 pCB->setVariable(sAmbientLightOffset, mpScene->getAmbientIntensity());
             }
             //AREA_LIGHT_EXTENSION
-            auto block = currentData.pVars->getDefaultBlock();
-            block->setTexture("g_ltc_mat", texLtcMat);
-            block->setTexture("g_ltc_mag", texLtcMag);
-            block->setSampler("g_light_sampler", linearSampler);
+            if (hasAreaLight)
+            {
+                auto block = currentData.pVars->getDefaultBlock();
+                block->setTexture("g_ltc_mat", texLtcMat);
+                block->setTexture("g_ltc_mag", texLtcMag);
+                block->setSampler("g_light_sampler", linearSampler);
+            }
         }
     }
 

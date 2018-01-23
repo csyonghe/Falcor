@@ -364,14 +364,41 @@ void _fn evalMaterialLayer(int iLayer, ShadingAttribs attr, LightAttribs lAttr,
     switch(desc.type)
     {
     case MatLambert: /* Diffuse BRDF */
-        value = evalDiffuseLayer(values, lAttr.lightIntensity, lAttr.L, attr.N, result) * lAttr.shadowFactor;
+    // AREA_LIGHT_EXTENSION
+        if (lAttr.lightType == LightQuad)
+        {
+            Points4 pts;
+            $for (i in Range(4)) pts.points[i] = lAttr.points[i];
+            value = float4(evalAreaLight_diffuse(attr.N, attr.E, attr.P, lAttr.lightIntensity,
+                    pts, false), 1.0);
+        }
+        else
+            value = evalDiffuseLayer(values, lAttr.lightIntensity, lAttr.L, attr.N, result) * lAttr.shadowFactor;
         break;
     case MatEmissive:
         value = evalEmissiveLayer(values, result);
         break;
     case MatConductor:
     case MatDielectric:
-        value = evalSpecularLayer(desc, values, attr, lAttr, result) * lAttr.shadowFactor;
+    // AREA_LIGHT_EXTENSION
+        if (lAttr.lightType == LightQuad)
+        {
+            Points4 pts;
+            $for (i in Range(4)) pts.points[i] = lAttr.points[i];
+            float2 roughness;
+            if(desc.hasTexture & ROUGHNESS_CHANNEL_BIT)
+            {
+                roughness = float2(values.albedo.w, values.albedo.w);
+            }
+            else
+            {
+                roughness = values.roughness.rg;
+            }
+            value = float4(evalAreaLight_specular(attr.N, attr.E, attr.P, 
+                roughness.r, lAttr.lightIntensity, pts, false), 1.0);
+        }
+        else
+            value = evalSpecularLayer(desc, values, attr, lAttr, result) * lAttr.shadowFactor;
         break;
     };
 
@@ -416,41 +443,10 @@ void _fn evalMaterial(
     passResult.specularIllumination = 0;
     passResult.roughness = 0;
     passResult.effectiveRoughness = 0;
-    //AREA_LIGHT_EXTENSION
-    if (lAttr.lightType == LightQuad)
+    $for (iLayer in Range(MatMaxLayers))
     {
-        //get roughness from material
-        MaterialLayerDesc desc = shAttr.preparedMat.desc.layers[1];
-        MaterialLayerValues data = shAttr.preparedMat.values.layers[1];
-        float2 roughness;
-        if(desc.hasTexture & ROUGHNESS_CHANNEL_BIT)
-        {
-            roughness = float2(data.albedo.w, data.albedo.w);
-        }
-        else
-        {
-            roughness = data.roughness.rg;
-        }
-        float3 albedo = shAttr.preparedMat.values.layers[0].albedo.rgb;
-        float3 diffLighting, specLighting;
-        Points4 pts;
-        for (int i = 0; i < 4; i++) pts.points[i] = lAttr.points[i];
-        evalAreaLight(shAttr.N, shAttr.E, shAttr.P, roughness.r, 
-                   lAttr.lightIntensity, 
-                   pts, false,
-                   diffLighting, specLighting);
-        passResult.value = (diffLighting+specLighting)*albedo;
-        passResult.diffuseAlbedo = albedo;
-        passResult.specularAlbedo = albedo;
-    }
-    else
-    {
-        [unroll]
-        for(uint iLayer = 0 ; iLayer < MatMaxLayers ; iLayer++)
-        {
-            if(shAttr.preparedMat.desc.layers[iLayer].type == MatNone) break;
+        if(shAttr.preparedMat.desc.layers[iLayer].type != MatNone) 
             evalMaterialLayer(iLayer, shAttr, lAttr, passResult);
-        }
     }
     /* Accumulate the results of the pass */
     result.finalValue += passResult.value;
