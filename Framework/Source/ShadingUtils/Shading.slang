@@ -416,11 +416,10 @@ void _fn evalMaterial(
     passResult.specularIllumination = 0;
     passResult.roughness = 0;
     passResult.effectiveRoughness = 0;
-    [unroll]
-    for(uint iLayer = 0 ; iLayer < MatMaxLayers ; iLayer++)
+    $for (iLayer in Range(MatMaxLayers))
     {
-        if(shAttr.preparedMat.desc.layers[iLayer].type == MatNone) break;
-        evalMaterialLayer(iLayer, shAttr, lAttr, passResult);
+        if(shAttr.preparedMat.desc.layers[iLayer].type != MatNone) 
+            evalMaterialLayer(iLayer, shAttr, lAttr, passResult);
     }
 
     /* Accumulate the results of the pass */
