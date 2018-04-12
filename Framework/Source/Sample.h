@@ -193,6 +193,7 @@ namespace Falcor
         int frameId = 0;
         LARGE_INTEGER timerFreq;
         double maxCpuTime = 0.0, minCpuTime = 1e30, totalCpuTime = 0.0;
+        double mGpuTime = 0.0, maxGpuTime = 0.0, minGpuTime = 1e30, totalGpuTime = 0.0f;
         double maxFullFrameTime = 0.0, minFullFrameTime = 1e30, totalFullFrameTime = 0.0;
     protected:
         void renderFrame() override;
@@ -235,7 +236,7 @@ namespace Falcor
         VideoCaptureData mVideoCapture;
 
         FrameRate mFrameRate;
-        
+        GpuTimer::SharedPtr mGpuTimer;
         float mFixedTimeDelta;
 
         TextRenderer::UniquePtr mpTextRenderer;

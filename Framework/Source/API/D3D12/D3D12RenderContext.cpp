@@ -95,6 +95,10 @@ namespace Falcor
         releaseBlitData();
     }
 
+    void RenderContext::enableStablePowerState()
+    {
+        gpDevice->getApiHandle()->SetStablePowerState(true);
+    }
 
     RenderContext::SharedPtr RenderContext::create(CommandQueueHandle queue)
     {

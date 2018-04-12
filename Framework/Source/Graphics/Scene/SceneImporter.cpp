@@ -805,7 +805,7 @@ namespace Falcor
             }
             else
             {
-                return error("Invalid key found in point light object. Key == " + key + ".");
+                //return error("Invalid key found in point light object. Key == " + key + ".");
             }
         }
 

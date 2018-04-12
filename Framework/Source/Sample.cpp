@@ -157,7 +157,7 @@ namespace Falcor
         }
 
         VRSystem::cleanup();
-
+        mGpuTimer.reset();
         mpGui.reset();
         mpDefaultPipelineState.reset();
         mpDefaultFBO.reset();
@@ -246,7 +246,8 @@ namespace Falcor
         {
             mArgList.parseCommandLine(concatCommandLine(argc, argv));
         }
-
+        mpRenderContext->enableStablePowerState();
+        mGpuTimer = GpuTimer::create();
         // Load and run
         onLoad();
         pBar = nullptr;
@@ -372,7 +373,10 @@ namespace Falcor
                 mpDefaultPipelineState->setFbo(mpDefaultFBO);
             }
             calculateTime();
+            mGpuTimer->begin();
             onFrameRender();
+            mGpuTimer->end();
+            mGpuTime = mGpuTimer->getElapsedTime();
         }
         {
             PROFILE(renderGUI);
@@ -417,16 +421,19 @@ namespace Falcor
                 {
                     maxCpuTime = std::max(maxCpuTime, cpuTime);
                     minCpuTime = std::min(minCpuTime, cpuTime);
+                    maxGpuTime = std::max(maxGpuTime, mGpuTime);
+                    minGpuTime = std::min(minGpuTime, mGpuTime);
                     totalCpuTime += cpuTime;
                     maxFullFrameTime = std::max(maxFullFrameTime, fullTime);
                     minFullFrameTime = std::min(minFullFrameTime, fullTime);
                     totalFullFrameTime += fullTime;
+                    totalGpuTime += mGpuTime;
                     int frameCount = frameId - timingStartFrame + 1;
                     if (frameCount == timingTotalFrames)
                     {
                         FILE* f = fopen("times.txt", "wb");
                         fprintf(f, "%.2f %.2f %.2f %.2f %.2f %.2f", minCpuTime*1000.0, maxCpuTime*1000.0, totalCpuTime*1000.0 / frameCount,
-                            minFullFrameTime*1000.0, maxFullFrameTime*1000.0, totalFullFrameTime*1000.0 / frameCount);
+                            minGpuTime*1000.0, maxGpuTime*1000.0, totalGpuTime*1000.0 / frameCount);
                         fclose(f);
                         shutdownApp();
                     }
@@ -471,6 +478,9 @@ namespace Falcor
         {
             float msPerFrame = mFrameRate.getAverageFrameTime();
             std::string msStr = std::to_string(msPerFrame);
+            strstr.setf(std::ios::fixed, std::ios::floatfield);
+            strstr.precision(3);
+            strstr << "GPU: " << mGpuTime << ", ";
             strstr << std::to_string(int(ceil(1000 / msPerFrame))) + " FPS (" + msStr.erase(msStr.size() - 4) + " ms/frame)";
             if (mVsyncOn) strstr << std::string(", VSync");
 
