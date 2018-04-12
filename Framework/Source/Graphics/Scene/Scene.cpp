@@ -118,6 +118,15 @@ namespace Falcor
         }
     }
 
+    uint32_t Scene::getLightCountOfType(uint32_t lightType) const
+    {
+        uint32_t rs = 0;
+        for (auto &l : mpLights)
+            if (l->getType() == lightType)
+                rs++;
+        return rs;
+    }
+
     bool Scene::update(double currentTime, CameraController* cameraController)
     {
         bool changed = false;

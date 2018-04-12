@@ -125,6 +125,8 @@ namespace Falcor
         uint32_t addLight(const Light::SharedPtr& pLight);
         void deleteLight(uint32_t lightID);
         uint32_t getLightCount() const { return (uint32_t)mpLights.size(); }
+        uint32_t getLightCountOfType(uint32_t lightType) const;
+
         const Light::SharedPtr& getLight(uint32_t index) const { return mpLights[index]; }
         const std::vector<Light::SharedPtr>& getLights() const { return mpLights; }
 

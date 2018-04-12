@@ -40,6 +40,9 @@ cbuffer InternalPerFrameCB : register(b10)
     CameraData gCam;
     float3 gAmbientLighting;
     uint32_t gLightsCount;
+    uint32_t gPointLightCount, gDirLightCount;
+    //AREA_LIGHT_EXTENSION
+    uint32_t gQuadLightCount;
     LightData gLights[MAX_LIGHT_SOURCES];
 };
 
@@ -57,6 +60,36 @@ cbuffer InternalBoneCB
     float4x4 gBoneMat[MAX_BONES];               // Per-model bone matrices
     float4x4 gInvTransposeBoneMat[MAX_BONES];   // Per-model bone inverse transpose matrices
 };
+
+#ifdef LIGHT_SPECIALIZATION
+int getPointLightCount()
+{
+    return POINT_LIGHT_COUNT;
+}
+int getDirLightCount()
+{
+    return DIR_LIGHT_COUNT;
+}
+//AREA_LIGHT_EXTENSION
+int getQuadLightCount()
+{
+    return QUAD_LIGHT_COUNT;
+}
+#else
+int getPointLightCount()
+{
+    return gPointLightCount;
+}
+int getDirLightCount()
+{
+    return gDirLightCount;
+}
+//AREA_LIGHT_EXTENSION
+int getQuadLightCount()
+{
+    return gQuadLightCount;
+}
+#endif
 
 #ifdef _VERTEX_BLENDING
 float4x4 getBlendedBoneMat(float4 weights, uint4 ids)

@@ -26,7 +26,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************************************************************************/
 #include "FeatureDemoCommon.hlsli"
-
+#include "HostDeviceSharedMacros.h"
 __import BSDFs;
 __import Shading;
 __import Helpers;
@@ -58,9 +58,8 @@ PsOut main(MainVsOut vOut, float4 pixelCrd : SV_POSITION)
 #ifdef _ENABLE_TRANSPARENCY
     opacity = getDiffuseColor(shAttr).a;
 #endif
-
-    [unroll]
-    for (uint l = 0; l < _LIGHT_COUNT; l++)
+#ifdef LIGHT_SPECIALIZATION
+    for (int l = 0; l < DIR_LIGHT_COUNT; l++)
     {
         float shadowFactor = 1;
 #ifdef _ENABLE_SHADOWS
@@ -71,9 +70,40 @@ PsOut main(MainVsOut vOut, float4 pixelCrd : SV_POSITION)
             envMapFactor -= 1 - shadowFactor;
         }
 #endif
-        evalMaterial(shAttr, gLights[l], shadowFactor, result, l == 0);
+        LightData light = gLights[l];
+        light.type = LightDirectional;
+        evalMaterial(shAttr, light, shadowFactor, result, l == 0);
     }
-
+    for (int l = DIR_LIGHT_COUNT; l < DIR_LIGHT_COUNT+POINT_LIGHT_COUNT; l++)
+    {
+        LightData light = gLights[l];
+        light.type = LightPoint;
+        evalMaterial(shAttr, light, 1.0, result, l == 0);
+    }
+    //AREA_LIGHT_EXTENSION
+    uint32_t quadLightCount = getQuadLightCount();
+    for (int l = DIR_LIGHT_COUNT+POINT_LIGHT_COUNT; l < DIR_LIGHT_COUNT+POINT_LIGHT_COUNT+QUAD_LIGHT_COUNT; l++)
+    {
+        LightData light = gLights[l];
+        light.type = LightQuad;
+        evalMaterial(shAttr, light, 1.0, result, l == 0);
+    }
+#else
+    for (int l = 0; l < _LIGHT_COUNT; l++)
+    {
+        float shadowFactor = 1;
+#ifdef _ENABLE_SHADOWS
+        if (l == 0)
+        {
+            shadowFactor = calcShadowFactor(gCsmData, vOut.shadowsDepthC, shAttr.P, vOut.vsData.posH.xy / vOut.vsData.posH.w);
+            shadowFactor *= opacity;
+            envMapFactor -= 1 - shadowFactor;
+        }
+#endif
+        LightData light = gLights[l];
+        evalMaterial(shAttr, light, shadowFactor, result, l == 0);
+    }
+#endif
     finalColor = float4(result.finalValue, 1.f);
 #ifdef _ENABLE_TRANSPARENCY
     finalColor.a = opacity * gOpacityScale;

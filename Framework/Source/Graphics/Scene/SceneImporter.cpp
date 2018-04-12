@@ -722,7 +722,7 @@ namespace Falcor
             }
             else
             {
-                return error("Invalid key found in directional light object. Key == " + key + ".");
+                //return error("Invalid key found in directional light object. Key == " + key + ".");
             }
         }
         mScene.addLight(pDirLight);

@@ -57,6 +57,14 @@ void FeatureDemo::initLightingPass()
 {
     mLightingPass.pProgram = GraphicsProgram::createFromFile("FeatureDemo.vs.slang", "FeatureDemo.ps.slang");
     mLightingPass.pProgram->addDefine("_LIGHT_COUNT", std::to_string(mpSceneRenderer->getScene()->getLightCount()));
+#ifdef LIGHT_SPECIALIZATION
+    mLightingPass.pProgram->addDefine("LIGHT_SPECIALIZATION", "");
+    mLightingPass.pProgram->addDefine("POINT_LIGHT_COUNT", std::to_string(mpSceneRenderer->getScene()->getLightCountOfType(LightPoint)));
+    mLightingPass.pProgram->addDefine("DIR_LIGHT_COUNT", std::to_string(mpSceneRenderer->getScene()->getLightCountOfType(LightDirectional)));
+    //AREA_LIGHT_EXTENSION
+    mLightingPass.pProgram->addDefine("QUAD_LIGHT_COUNT", std::to_string(mpSceneRenderer->getScene()->getLightCountOfType(LightQuad)));
+
+#endif
     initControls();
     mLightingPass.pVars = GraphicsVars::create(mLightingPass.pProgram->getActiveVersion()->getReflector());
     

@@ -131,19 +131,36 @@ namespace Falcor
             }
             bool hasAreaLight = false;
             // Set lights
-            if (sLightArrayOffset != ConstantBuffer::kInvalidOffset)
+            uint_t lightTypeOrder[] = { LightDirectional, LightPoint, LightQuad };
+            uint_t lptr = 0;
+            uint_t lightCounts[3] = {0, 0, 0};
+            int lti = 0;
+            for (auto lt : lightTypeOrder)
             {
-                assert(mpScene->getLightCount() <= MAX_LIGHT_SOURCES);  // Max array size in the shader
-                for (uint_t i = 0; i < mpScene->getLightCount(); i++)
+                if (sLightArrayOffset != ConstantBuffer::kInvalidOffset)
                 {
-                    if (mpScene->getLight(i)->getType() == LightQuad)
-                        hasAreaLight = true;
-                    mpScene->getLight(i)->setIntoConstantBuffer(pCB, i * Light::getShaderStructSize() + sLightArrayOffset);
+                    assert(mpScene->getLightCount() <= MAX_LIGHT_SOURCES);  // Max array size in the shader
+                    for (uint_t i = 0; i < mpScene->getLightCount(); i++)
+                    {
+                        if (mpScene->getLight(i)->getType() == lt)
+                        {
+                            if (mpScene->getLight(i)->getType() == LightQuad)
+                                hasAreaLight = true;
+                            lightCounts[lti]++;
+                            mpScene->getLight(i)->setIntoConstantBuffer(pCB, lptr * Light::getShaderStructSize() + sLightArrayOffset);
+                            lptr++;
+                        }
+                    }
                 }
+                lti++;
             }
             if (sLightCountOffset != ConstantBuffer::kInvalidOffset)
             {
                 pCB->setVariable(sLightCountOffset, mpScene->getLightCount());
+                pCB->setVariable("gDirLightCount", lightCounts[0]);
+                pCB->setVariable("gPointLightCount", lightCounts[1]);
+                //AREA_LIGHT_EXTENSION
+                pCB->setVariable("gQuadLightCount", lightCounts[2]);
             }
             if (sAmbientLightOffset != ConstantBuffer::kInvalidOffset)
             {

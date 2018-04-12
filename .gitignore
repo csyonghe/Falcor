@@ -31,3 +31,5 @@ Framework/Externals/slang/source/**/*.natvis
 !Framework/Externals/slang/source/**/*.h
 Framework/Externals/
 Media
+/Falcor-preslang-arealight.VC.VC.opendb
+/Falcor-preslang-arealight.VC.db
