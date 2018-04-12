@@ -131,7 +131,7 @@ namespace Falcor
             \param[in] dstRect Target rectangle to blit to, specified by [left, up, right, down]
         */
         void blit(ShaderResourceView::SharedPtr pSrc, RenderTargetView::SharedPtr pDst, const uvec4& srcRect = uvec4(-1), const uvec4& dstRect = uvec4(-1), Sampler::Filter = Sampler::Filter::Linear);
-
+        void enableStablePowerState();
         /** Set the program variables for graphics
         */
         void setGraphicsVars(const GraphicsVars::SharedPtr& pVars) { mBindGraphicsRootSig = true;/* mBindGraphicsRootSig || (mpGraphicsVars != pVars)*/; mpGraphicsVars = pVars; }
