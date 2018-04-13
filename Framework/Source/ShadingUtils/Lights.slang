@@ -54,21 +54,25 @@ struct LightAttribs
     float3    N;              ///< Normal of the sampled point on the light source
     float   pdf;            ///< Probability density function of sampling the light source
     //AREA_LIGHT_EXTENSION
+    #ifdef AREA_LIGHT_SUPPORT
     int       lightType;
     float3    points[4];
+    #endif
 };
-
 /**
     This routine computes the position of the the light based on the point 'shadingPosition'.
 */
 inline float3 _fn getLightPos(LightData Light, float3 shadingPosition)
 {
     float3 lightPos = Light.worldPos;
+#if 0
     if(Light.type == LightArea)
     {
         lightPos = mul(float4(lightPos, 1.0), Light.transMat).xyz;
     }    
-    else if(Light.type == LightDirectional)
+    else 
+    #endif
+    if(Light.type == LightDirectional)
     {
         float dist = length(shadingPosition - lightPos);
         lightPos = shadingPosition - Light.worldDir * dist;
@@ -104,12 +108,13 @@ inline void _fn prepareLightAttribs(LightData Light, ShadingAttribs ShAttr, floa
     LightAttr.pdf = 0;
     LightAttr.N = 0;
     LightAttr.shadowFactor = shadowFactor;
-
+    #ifdef AREA_LIGHT_SUPPORT
     [unroll]
     for(uint i = 0 ; i < 4 ; i++)
     {
         LightAttr.points[i] = 0;
     }
+    #endif
     float3 PosToLight = LightAttr.P - ShAttr.P;
     if(dot(PosToLight, PosToLight) > 1e-3f)
     {
@@ -132,7 +137,9 @@ inline void _fn prepareLightAttribs(LightData Light, ShadingAttribs ShAttr, floa
         float cosTheta = -dot(LightAttr.L, Light.worldDir);	// cos of angle of light orientation with outgoing direction
         if(Light.type == LightArea)			// Cosine attenuation
         {
+        #if 0
             Atten = max(0.f, cosTheta) * Light.surfaceArea;
+        #endif
         }
         else if(Light.type == LightPoint)
         {
@@ -152,6 +159,7 @@ inline void _fn prepareLightAttribs(LightData Light, ShadingAttribs ShAttr, floa
         LightAttr.lightIntensity *= Atten;
     }
     //AREA_LIGHT_EXTENSION
+    #ifdef AREA_LIGHT_SUPPORT
     LightAttr.lightType = Light.type;
     if (Light.type == LightQuad)
     {
@@ -159,6 +167,7 @@ inline void _fn prepareLightAttribs(LightData Light, ShadingAttribs ShAttr, floa
             LightAttr.points[i] = Light.points[i].xyz;
         LightAttr.lightIntensity = Light.intensity;
     }
+    #endif
     // DISABLED_FOR_D3D12
 #if 0
     if (Light.type == LightArea)
@@ -227,7 +236,7 @@ void _fn stratifiedSampleRectangularAreaLight(float3 shadingHitPos, LightData lD
 {
     if (lData.type != LightArea)
         return;
-
+        #if 0
     // Transform light position and light normal
     float3 lightPos = mul(float4(lData.worldPos, 1.0f), lData.transMat).rgb;
     lAttr.N = mul(float4(lData.worldDir, 0.0f), lData.transMat).rgb;
@@ -259,6 +268,7 @@ void _fn stratifiedSampleRectangularAreaLight(float3 shadingHitPos, LightData lD
         lAttr.lightIntensity /= lAttr.pdf;
     else
         lAttr.lightIntensity = 0;
+    #endif
 }
 
 
@@ -279,7 +289,7 @@ struct Points5
 Texture2D g_ltc_mat;
 Texture2D g_ltc_mag;
 SamplerState g_light_texSampler;
-
+#ifdef AREA_LIGHT_SUPPORT
 float3 evalAreaLight_diffuse(float3 N, float3 V, float3 P, float3 intensity, Points4 points, bool twoSided)
 {
     float3 diffLighting = intensity*LTC_Evaluate(N, V, P, float3x3(1,0,0,0,1,0,0,0,1), points, twoSided); 
@@ -473,7 +483,7 @@ void ClipQuadToHorizon(inout Points5 L, out int n)
         L.points[4] = L.points[0];
 }
 
-
+#endif
 ////////////
 
 

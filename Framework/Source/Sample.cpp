@@ -379,7 +379,6 @@ namespace Falcor
             mGpuTime = mGpuTimer->getElapsedTime();
         }
         {
-            PROFILE(renderGUI);
             if (mShowUI)
             {
                 renderGUI();
@@ -402,7 +401,6 @@ namespace Falcor
         QueryPerformanceCounter(&endCpuTime);
         if(gpDevice)
         {
-            PROFILE(present);
             gpDevice->present();
         }
         LARGE_INTEGER endFullTime;

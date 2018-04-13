@@ -81,7 +81,7 @@ namespace Falcor
             logWarning("AreaLight::setIntoConstantBuffer() - variable \"" + varName + "\"not found in constant buffer\n");
             return;
         }
-
+#if 0
         check_offset(worldDir);
         check_offset(intensity);
         check_offset(aabbMin);
@@ -90,6 +90,7 @@ namespace Falcor
         check_offset(numIndices);
 
         setIntoConstantBuffer(pBuffer, offset);
+#endif
     }
 
     glm::vec3 Light::getColorForUI()
@@ -369,6 +370,7 @@ namespace Falcor
 // 			// Store the mesh CDF buffer id
 // 			mData.meshCDFPtr.ptr = mMeshCDFBuf->makeResident();
 // 		}
+#if 0
  		mData.numIndices = uint32_t(mIndexBuf->getSize() / sizeof(glm::ivec3));
  
  		// Get the surface area of the geometry mesh
@@ -379,7 +381,7 @@ namespace Falcor
 
  		// Fetch the mesh instance transformation
  		mData.transMat = mpMeshInstance->getTransformMatrix();
-
+#endif
 // 		// Copy the material data
 // 		const Material::SharedPtr& pMaterial = mMeshData.pMesh->getMaterial();
 // 		if (pMaterial)
@@ -515,10 +517,11 @@ namespace Falcor
 
                 // Take the normal of the first triangle as a light normal
                 mData.worldDir = normalize(cross(p1 - p0, p2 - p0));
-
+#if 0
                 // Save the axis-aligned bounding box
                 mData.aabbMin = boxMin;
                 mData.aabbMax = boxMax;
+#endif
             }
 
             mIndexBuf->unmap();
@@ -600,10 +603,12 @@ namespace Falcor
         mData.worldDir = normalize(mData.worldDir);
         upDir = normalize(upDir);
         float3 right = normalize(cross(upDir, mData.worldDir));
+#ifdef AREA_LIGHT_SUPPORT
         mData.points[0] = float4(mData.worldPos - right * width * 0.5f - upDir * height * 0.5f, 1.0f);
         mData.points[1] = float4(mData.worldPos + right * width * 0.5f - upDir * height * 0.5f, 1.0f);
         mData.points[2] = float4(mData.worldPos + right * width * 0.5f + upDir * height * 0.5f, 1.0f);
         mData.points[3] = float4(mData.worldPos - right * width * 0.5f + upDir * height * 0.5f, 1.0f);
+#endif
     }
 
     void QuadLight::renderUI(Gui* pGui, const char* group)
@@ -631,10 +636,12 @@ namespace Falcor
                 worldParamsChanged();
             }
             Light::renderUI(pGui);
+#ifdef AREA_LIGHT_SUPPORT
             pGui->addFloat4Var("points[0]", mData.points[0], -10000.0f, 1000.0f);
             pGui->addFloat4Var("points[1]", mData.points[1], -10000.0f, 1000.0f);
             pGui->addFloat4Var("points[2]", mData.points[2], -10000.0f, 1000.0f);
             pGui->addFloat4Var("points[3]", mData.points[3], -10000.0f, 1000.0f);
+#endif
             if (group)
             {
                 pGui->endGroup();

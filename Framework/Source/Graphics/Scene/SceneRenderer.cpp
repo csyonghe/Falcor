@@ -57,6 +57,9 @@ namespace Falcor
     const char* SceneRenderer::kPerFrameCbName = "InternalPerFrameCB";
     const char* SceneRenderer::kPerMeshCbName = "InternalPerMeshCB";
     const char* SceneRenderer::kBoneCbName = "InternalBoneCB";
+    Texture::SharedPtr SceneRenderer::texLtcMag;
+    Texture::SharedPtr SceneRenderer::texLtcMat;
+    Sampler::SharedPtr SceneRenderer::linearSampler;
 
     SceneRenderer::SharedPtr SceneRenderer::create(const Scene::SharedPtr& pScene)
     {
@@ -67,12 +70,15 @@ namespace Falcor
     {
         setCameraControllerType(CameraControllerType::SixDof);
         //AREA_LIGHT_EXTENSION
-        texLtcMag = createTextureFromFile("Framework/Textures/ltc_amp.dds", false, false);
-        texLtcMat = createTextureFromFile("Framework/Textures/ltc_mat.dds", false, false);
-        Sampler::Desc desc;
-        desc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
-        desc.setLodParams(0, 0, 0.0f);
-        linearSampler = Sampler::create(desc);
+        if (!texLtcMag)
+        {
+            texLtcMag = createTextureFromFile("Framework/Textures/ltc_amp.dds", false, false);
+            texLtcMat = createTextureFromFile("Framework/Textures/ltc_mat.dds", false, false);
+            Sampler::Desc desc;
+            desc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
+            desc.setLodParams(0, 0, 0.0f);
+            linearSampler = Sampler::create(desc);
+        }
     }
 
     void SceneRenderer::updateVariableOffsets(const ProgramReflection* pReflector)
@@ -157,10 +163,6 @@ namespace Falcor
             if (sLightCountOffset != ConstantBuffer::kInvalidOffset)
             {
                 pCB->setVariable(sLightCountOffset, mpScene->getLightCount());
-                pCB->setVariable("gDirLightCount", lightCounts[0]);
-                pCB->setVariable("gPointLightCount", lightCounts[1]);
-                //AREA_LIGHT_EXTENSION
-                pCB->setVariable("gQuadLightCount", lightCounts[2]);
             }
             if (sAmbientLightOffset != ConstantBuffer::kInvalidOffset)
             {

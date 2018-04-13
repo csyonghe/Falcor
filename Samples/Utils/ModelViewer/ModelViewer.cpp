@@ -282,7 +282,6 @@ void ModelViewer::onFrameRender()
         // Animate
         if(mAnimate)
         {
-            PROFILE(animate);
             mpModel->animate(mCurrentTime);
         }
 

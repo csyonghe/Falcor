@@ -47,8 +47,8 @@ namespace Falcor
     {
     private:
         //AREA_LIGHT_EXTENSION
-        Texture::SharedPtr texLtcMag, texLtcMat;
-        Sampler::SharedPtr linearSampler;
+        static Texture::SharedPtr texLtcMag, texLtcMat;
+        static Sampler::SharedPtr linearSampler;
     public:
         using SharedPtr = std::shared_ptr<SceneRenderer>;
         using SharedConstPtr = std::shared_ptr<const SceneRenderer>;

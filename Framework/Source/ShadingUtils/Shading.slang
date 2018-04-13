@@ -365,6 +365,7 @@ void _fn evalMaterialLayer(int iLayer, ShadingAttribs attr, LightAttribs lAttr,
     {
     case MatLambert: /* Diffuse BRDF */
     // AREA_LIGHT_EXTENSION
+        #ifdef AREA_LIGHT_SUPPORT
         if (lAttr.lightType == LightQuad)
         {
             Points4 pts;
@@ -372,7 +373,9 @@ void _fn evalMaterialLayer(int iLayer, ShadingAttribs attr, LightAttribs lAttr,
             value = float4(evalAreaLight_diffuse(attr.N, attr.E, attr.P, lAttr.lightIntensity,
                     pts, false), 1.0);
         }
+
         else
+        #endif
             value = evalDiffuseLayer(values, lAttr.lightIntensity, lAttr.L, attr.N, result) * lAttr.shadowFactor;
         break;
     case MatEmissive:
@@ -381,6 +384,7 @@ void _fn evalMaterialLayer(int iLayer, ShadingAttribs attr, LightAttribs lAttr,
     case MatConductor:
     case MatDielectric:
     // AREA_LIGHT_EXTENSION
+        #ifdef AREA_LIGHT_SUPPORT
         if (lAttr.lightType == LightQuad)
         {
             Points4 pts;
@@ -398,6 +402,7 @@ void _fn evalMaterialLayer(int iLayer, ShadingAttribs attr, LightAttribs lAttr,
                 roughness.r, lAttr.lightIntensity, pts, false), 1.0);
         }
         else
+        #endif
             value = evalSpecularLayer(desc, values, attr, lAttr, result) * lAttr.shadowFactor;
         break;
     };

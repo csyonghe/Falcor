@@ -74,19 +74,20 @@ PsOut main(MainVsOut vOut, float4 pixelCrd : SV_POSITION)
         light.type = LightDirectional;
         evalMaterial(shAttr, light, shadowFactor, result, l == 0);
     }
-    for (int l = DIR_LIGHT_COUNT; l < DIR_LIGHT_COUNT+POINT_LIGHT_COUNT; l++)
+    for (int l = 0; l < POINT_LIGHT_COUNT; l++)
     {
-        LightData light = gLights[l];
+        int i = l + DIR_LIGHT_COUNT;
+        LightData light = gLights[i];
         light.type = LightPoint;
-        evalMaterial(shAttr, light, 1.0, result, l == 0);
+        evalMaterial(shAttr, light, 1.0, result, i == 0);
     }
     //AREA_LIGHT_EXTENSION
-    uint32_t quadLightCount = getQuadLightCount();
-    for (int l = DIR_LIGHT_COUNT+POINT_LIGHT_COUNT; l < DIR_LIGHT_COUNT+POINT_LIGHT_COUNT+QUAD_LIGHT_COUNT; l++)
+    for (int l = 0; l < QUAD_LIGHT_COUNT; l++)
     {
-        LightData light = gLights[l];
+        int i = l + DIR_LIGHT_COUNT+POINT_LIGHT_COUNT;
+        LightData light = gLights[i];
         light.type = LightQuad;
-        evalMaterial(shAttr, light, 1.0, result, l == 0);
+        evalMaterial(shAttr, light, 1.0, result, i == 0);
     }
 #else
     for (int l = 0; l < _LIGHT_COUNT; l++)

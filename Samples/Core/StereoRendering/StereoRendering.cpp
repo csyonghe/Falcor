@@ -90,7 +90,6 @@ void StereoRendering::initVR()
 
 void StereoRendering::submitStereo(bool singlePassStereo)
 {
-    PROFILE(STEREO);
     VRSystem::instance()->refresh();
 
     // Clear the FBO

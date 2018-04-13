@@ -239,7 +239,6 @@ void SimpleDeferred::onFrameRender()
         // Animate
         if(mAnimate)
         {
-            PROFILE(Animate);
             mpModel->animate(mCurrentTime);
         }
 
