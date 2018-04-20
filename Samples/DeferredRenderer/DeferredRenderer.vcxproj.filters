@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="DeferredRenderer.cpp" />
+    <ClCompile Include="DeferredRendererControls.cpp" />
+    <ClCompile Include="DeferredRendererSceneRenderer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DeferredRenderer.h" />
+    <ClInclude Include="DeferredRendererSceneRenderer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Data">
+      <UniqueIdentifier>{392d281b-8330-4036-9268-e190dc6c5dc0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Data\ApplyAO.ps.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\DeferredRenderer.ps.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\DeferredRenderer.vs.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\DeferredRendererCommon.hlsli">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\GBufferPass.ps.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\GBufferPass.vs.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\ForwardRenderer.ps.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\ForwardRenderer.vs.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\ForwardRendererCommon.hlsli">
+      <Filter>Data</Filter>
+    </None>
+  </ItemGroup>
+</Project>

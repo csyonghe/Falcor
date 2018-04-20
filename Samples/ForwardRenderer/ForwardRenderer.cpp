@@ -275,6 +275,7 @@ void ForwardRenderer::beginFrame(RenderContext* pContext, Fbo* pTargetFbo, uint3
     pContext->pushGraphicsState(mpState);
     pContext->clearFbo(mpMainFbo.get(), glm::vec4(0.7f, 0.7f, 0.7f, 1.0f), 1, 0, FboAttachmentType::All);
     pContext->clearFbo(mpPostProcessFbo.get(), glm::vec4(), 1, 0, FboAttachmentType::Color);
+    pContext->clearFbo(mpDepthPassFbo.get(), glm::vec4(0.7f, 0.7f, 0.7f, 1.0f), 1, 0, FboAttachmentType::All);
 
     if (mAAMode == AAMode::TAA)
     {

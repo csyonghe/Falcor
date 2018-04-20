@@ -86,6 +86,14 @@ struct StandardBxDF<let DiffuseBrdf : int> : IBxDF
     float IoR;
     bool doubleSidedMaterial;
     
+    void packGBuffer(inout GBufferElement elem)
+    {
+        elem.baseColor = diffuse;
+        elem.specular = specular;
+        elem.roughness = linearRoughness;
+        elem.intrinsicLighting = getIntrinsicLighting();
+    }
+
     float3 getIntrinsicLighting()
     {
         return lightMap * diffuse + emissive;
@@ -172,6 +180,32 @@ StandardBxDF<DiffuseBrdf> initStandardBxDF<let DiffuseBrdf : int>()
     rs.height = 0;
     rs.IoR = 0;
     rs.doubleSidedMaterial = false;
+    return rs;
+}
+
+StandardBxDF<DiffuseBrdf> loadStandardBxdfFromGBuffer<let DiffuseBrdf : int>(GBufferElement elem)
+{
+    StandardBxDF<DiffuseBrdf> rs;
+    rs.diffuse = elem.baseColor.xyz;
+    rs.opacity = 1;
+    rs.specular = elem.specular.xyz;
+    rs.linearRoughness = elem.roughness;
+    rs.roughness = rs.linearRoughness * rs.linearRoughness;
+    rs.emissive = elem.intrinsicLighting;
+    rs.occlusion = 0;
+    rs.lightMap = 0;
+    rs.height = 0;
+    rs.IoR = 0;
+    rs.doubleSidedMaterial = false;
+    return rs;
+}
+
+
+ShadingPoint<StandardBxDF<DiffuseBrdf> > loadStandardShadingPointFromGBuffer<let DiffuseBrdf: int>(GBufferElement elem, CameraData cam)
+{
+    ShadingPoint<StandardBxDF<DiffuseBrdf> > rs;
+    rs.geom = surfaceGeometryLoadFromGBuffer(elem, cam);
+    rs.bxdf = loadStandardBxdfFromGBuffer<DiffuseBrdf>(elem);
     return rs;
 }
 
