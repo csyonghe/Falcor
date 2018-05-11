@@ -169,26 +169,69 @@ interface IMaterial
     ShadingPoint<BxDF> evalShadingPoint(VertexOut v, float3 camPosW);
 }
 
+interface ILightFilter
+{
+    bool filter<TLight:ILight>(TLight light);
+};
+
+interface ILightIntegrator
+{
+    associatedtype AggregateResult;
+    AggregateResult processLight<TLight:ILight>(AggregateResult prev, TLight light);
+};
+
+interface ILightCollection
+{
+    int getLightCount();
+    int filter<TLightFilter:ILightFilter>(int i0, TLightFilter filter, RWStructuredBuffer<int> indexRange, int indexStart);
+    TLightIntegrator.AggregateResult integrateRanged<TLightIntegrator:ILightIntegrator>(TLightIntegrator integrator, TLightIntegrator.AggregateResult initVal, int i0, StructuredBuffer<int> range, inout int indexStart, int indexEnd);
+    TLightIntegrator.AggregateResult integrateAll<TLightIntegrator:ILightIntegrator>(TLightIntegrator integrator, TLightIntegrator.AggregateResult initVal);
+};
+
 interface ILight
 {
     ShadingResult evalLighting<TBxDF:IBxDF>(ShadingPoint<TBxDF> p, GlobalLightParams globalLightParams);
 }
 
-struct LightEnv<TLight : ILight>
+struct LightEnv<TLight : ILightCollection>
 {
     TLight lights;
     GlobalLightParams params;
 };
 
-ShadingResult evalMaterial<TBxDF : IBxDF, TLight : ILight>(ShadingPoint<TBxDF> p, LightEnv<TLight> lEnv)
+struct LightIntegrator<TBxDF : IBxDF> : ILightIntegrator
 {
-    return lEnv.lights.evalLighting(p, lEnv.params);
+    ShadingPoint<TBxDF> p;
+    GlobalLightParams globalLightParams;
+
+    typedef ShadingResult AggregateResult;
+    
+    ShadingResult processLight<TLight:ILight>(ShadingResult prev, TLight light)
+    {
+        ShadingResult rs = light.evalLighting(p, globalLightParams);
+        rs.diffuse += prev.diffuse;
+        rs.specular += prev.specular;
+        rs.color += prev.color;
+        rs.color.a = prev.color.a;
+        return rs;
+    }
+};
+
+ShadingResult evalMaterial<TBxDF : IBxDF, TLight : ILightCollection>(ShadingPoint<TBxDF> p, LightEnv<TLight> lEnv)
+{
+    LightIntegrator<TBxDF> integrator;
+    integrator.p = p;
+    integrator.globalLightParams = lEnv.params;
+    return lEnv.lights.integrateAll(integrator, initShadingResult());
 }
 
 // deprecated
-ShadingResult evalMaterial<TBxDF : IBxDF, TLight : ILight>(ShadingPoint<TBxDF> p, float shadowFactor, LightEnv<TLight> lEnv)
+ShadingResult evalMaterial<TBxDF : IBxDF, TLight : ILightCollection>(ShadingPoint<TBxDF> p, float shadowFactor, LightEnv<TLight> lEnv)
 {
-    return lEnv.lights.evalLighting(p, lEnv.params);
+    LightIntegrator<TBxDF> integrator;
+    integrator.p = p;
+    integrator.globalLightParams = lEnv.params;
+    return lEnv.lights.integrateAll(integrator, initShadingResult());
 }
 
 ShadingPoint<TMaterial.BxDF> prepareShadingData<TMaterial : IMaterial>(VertexOut v, TMaterial mat, float3 camPosW)
