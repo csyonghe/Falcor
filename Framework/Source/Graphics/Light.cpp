@@ -677,8 +677,14 @@ namespace Falcor
                 varNameSb << "lights.";
                 for (auto & lt : env->lightTypes)
                 {
-                    strStream << "LightPair<LightArray<" << lt.second.typeName << ", " << lt.second.lights.size()
-                        << ">, ";
+                    strStream << "LightPair<";
+                    
+                    if (lt.second.lights.size() != 1)
+                        strStream << "LightArray<" << lt.second.typeName << ", " << lt.second.lights.size() << ">";
+                    else
+                        strStream << "LightSingleton<" << lt.second.typeName << ">";
+
+                    strStream << ", ";
                     lt.second.variableName = varNameSb.str() + "light1";
                     varNameSb << "light2.";
                 }
@@ -722,12 +728,20 @@ namespace Falcor
             ConstantBuffer* pCB = mpParamBlock->getConstantBuffer(mpParamBlock->getReflection()->getName()).get();
             for (auto & lt : env->lightTypes)
             {
-                uint32_t i = 0;
-                for (auto l : lt.second.lights)
+                if (lt.second.lights.size() == 1)
                 {
-                    l->setIntoParameterBlock(mpParamBlock.get(), i * Light::getShaderStructSize() + lt.second.cbOffset,
-                        lt.second.variableName + ".lights[" + std::to_string(i) + "]");
-                    i++;
+                    lt.second.lights[0]->setIntoParameterBlock(mpParamBlock.get(), lt.second.cbOffset,
+                        lt.second.variableName + ".light");
+                }
+                else
+                {
+                    uint32_t i = 0;
+                    for (auto l : lt.second.lights)
+                    {
+                        l->setIntoParameterBlock(mpParamBlock.get(), i * Light::getShaderStructSize() + lt.second.cbOffset,
+                            lt.second.variableName + ".lights[" + std::to_string(i) + "]");
+                        i++;
+                    }
                 }
             }
             // set global params
